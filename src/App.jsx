@@ -13,6 +13,14 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentUser, setCurrentUser] = useState({ firstName: '', lastName: '' })
   const [loginForm, setLoginForm] = useState({ firstName: '', lastName: '' })
+  const [showTaskModal, setShowTaskModal] = useState(false)
+  const [newTaskForm, setNewTaskForm] = useState({
+    task: '',
+    department: '',
+    lastName: '',
+    roomNumber: ''
+  })
+  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
 
   // Загрузка данных из localStorage
   useEffect(() => {
@@ -49,6 +57,30 @@ export default function App() {
     localStorage.setItem('todoAuth', isAuthenticated.toString())
   }, [currentUser, isAuthenticated])
 
+  const playNotificationSound = () => {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+    const oscillator = audioContext.createOscillator()
+    const gainNode = audioContext.createGain()
+    
+    oscillator.connect(gainNode)
+    gainNode.connect(audioContext.destination)
+    
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime)
+    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1)
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
+    
+    oscillator.start(audioContext.currentTime)
+    oscillator.stop(audioContext.currentTime + 0.5)
+  }
+
+  const showNotification = (message, type = 'success') => {
+    setNotification({ show: true, message, type })
+    setTimeout(() => {
+      setNotification({ show: false, message: '', type: 'success' })
+    }, 3000)
+  }
+
   const addTask = () => {
     if (newTask.trim()) {
       const task = {
@@ -64,6 +96,37 @@ export default function App() {
       setNewTask('')
       setAssignee('')
       setPriority('medium')
+      
+      playNotificationSound()
+      showNotification('Задача успешно добавлена!')
+    }
+  }
+
+  const addTaskFromModal = () => {
+    if (newTaskForm.task.trim() && newTaskForm.department.trim() && 
+        newTaskForm.lastName.trim() && newTaskForm.roomNumber.trim()) {
+      const task = {
+        id: Date.now(),
+        text: newTaskForm.task,
+        assignee: assignee || 'Общие дела',
+        priority: priority,
+        author: `${currentUser.firstName} ${currentUser.lastName}`,
+        department: newTaskForm.department,
+        lastName: newTaskForm.lastName,
+        roomNumber: newTaskForm.roomNumber,
+        completed: false,
+        createdAt: new Date().toLocaleString()
+      }
+      setTasks([...tasks, task])
+      setNewTaskForm({ task: '', department: '', lastName: '', roomNumber: '' })
+      setAssignee('')
+      setPriority('medium')
+      setShowTaskModal(false)
+      
+      playNotificationSound()
+      showNotification('Задача успешно добавлена!')
+    } else {
+      showNotification('Пожалуйста, заполните все поля', 'error')
     }
   }
 
@@ -243,33 +306,13 @@ export default function App() {
         </div>
 
         <div className="content">
-          <div className="add-task">
-            <input
-              type="text"
-              value={newTask}
-              onChange={(e) => setNewTask(e.target.value)}
-              placeholder="Новая задача..."
-              onKeyPress={(e) => e.key === 'Enter' && addTask()}
-            />
-            <select 
-              value={assignee} 
-              onChange={(e) => setAssignee(e.target.value)}
+          <div className="add-task-header">
+            <button 
+              onClick={() => setShowTaskModal(true)} 
+              className="add-task-button"
             >
-              <option value="">Общие дела</option>
-              {assignees.map(assignee => (
-                <option key={assignee} value={assignee}>{assignee}</option>
-              ))}
-            </select>
-            <select 
-              value={priority} 
-              onChange={(e) => setPriority(e.target.value)}
-              className="priority-select"
-            >
-              <option value="high">🔴 Высокая</option>
-              <option value="medium">🟡 Средняя</option>
-              <option value="low">🟢 Низкая</option>
-            </select>
-            <button onClick={addTask}>Добавить</button>
+              ➕ Добавить новую задачу
+            </button>
           </div>
 
           <div className="task-list">
@@ -298,6 +341,9 @@ export default function App() {
                           {task.priority === 'medium' && '🟡 Средняя'}
                           {task.priority === 'low' && '🟢 Низкая'}
                         </span>
+                        {task.department && <span className="department">🏢 {task.department}</span>}
+                        {task.lastName && <span className="contact">👤 {task.lastName}</span>}
+                        {task.roomNumber && <span className="room">🚪 Каб. {task.roomNumber}</span>}
                         <span className="author">Автор: {task.author}</span>
                         <span className="created-at">{task.createdAt}</span>
                       </div>
@@ -315,6 +361,117 @@ export default function App() {
             )}
           </div>
         </div>
+
+        {/* Уведомления */}
+        {notification.show && (
+          <div className={`notification ${notification.type}`}>
+            {notification.message}
+          </div>
+        )}
+
+        {/* Модальное окно для добавления задачи */}
+        {showTaskModal && (
+          <div className="modal-overlay" onClick={() => setShowTaskModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>📝 Добавить новую задачу</h2>
+                <button 
+                  className="close-button"
+                  onClick={() => setShowTaskModal(false)}
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Задача *</label>
+                  <textarea
+                    value={newTaskForm.task}
+                    onChange={(e) => setNewTaskForm({...newTaskForm, task: e.target.value})}
+                    placeholder="Описание задачи..."
+                    rows="3"
+                  />
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Подразделение *</label>
+                    <input
+                      type="text"
+                      value={newTaskForm.department}
+                      onChange={(e) => setNewTaskForm({...newTaskForm, department: e.target.value})}
+                      placeholder="Название подразделения"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Фамилия *</label>
+                    <input
+                      type="text"
+                      value={newTaskForm.lastName}
+                      onChange={(e) => setNewTaskForm({...newTaskForm, lastName: e.target.value})}
+                      placeholder="Фамилия ответственного"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Номер кабинета *</label>
+                    <input
+                      type="text"
+                      value={newTaskForm.roomNumber}
+                      onChange={(e) => setNewTaskForm({...newTaskForm, roomNumber: e.target.value})}
+                      placeholder="Номер кабинета"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Исполнитель</label>
+                    <select 
+                      value={assignee} 
+                      onChange={(e) => setAssignee(e.target.value)}
+                    >
+                      <option value="">Общие дела</option>
+                      {assignees.map(assignee => (
+                        <option key={assignee} value={assignee}>{assignee}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Приоритет</label>
+                  <select 
+                    value={priority} 
+                    onChange={(e) => setPriority(e.target.value)}
+                    className="priority-select"
+                  >
+                    <option value="high">🔴 Высокая</option>
+                    <option value="medium">🟡 Средняя</option>
+                    <option value="low">🟢 Низкая</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button 
+                  onClick={() => setShowTaskModal(false)}
+                  className="cancel-button"
+                >
+                  Отмена
+                </button>
+                <button 
+                  onClick={addTaskFromModal}
+                  className="submit-button"
+                >
+                  Добавить задачу
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
