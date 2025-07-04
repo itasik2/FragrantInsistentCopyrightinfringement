@@ -249,31 +249,23 @@ body {
   background: #ff5252;
 }
 
-.filter-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.filter-buttons button {
-  padding: 0.75rem 1rem;
+.filter-select {
+  width: 100%;
+  padding: 0.75rem;
   border: 2px solid #e1e5e9;
-  background: white;
   border-radius: 8px;
-  cursor: pointer;
-  text-align: left;
-  transition: all 0.3s;
   font-size: 0.9rem;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.3s;
 }
 
-.filter-buttons button:hover {
+.filter-select:focus {
+  outline: none;
   border-color: #667eea;
-  background: #f8f9ff;
 }
 
-.filter-buttons button.active {
-  background: #667eea;
-  color: white;
+.filter-select:hover {
   border-color: #667eea;
 }
 
@@ -539,10 +531,9 @@ body {
     font-size: 16px;
   }
 
-  .filter-buttons button {
+  .filter-select {
     padding: 0.875rem;
-    font-size: 0.9rem;
-    text-align: center;
+    font-size: 16px;
   }
 
   .add-task {

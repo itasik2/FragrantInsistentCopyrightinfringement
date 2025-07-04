@@ -220,60 +220,25 @@ export default function App() {
           </div>
 
           <div className="filters">
-            <h3>Фильтры</h3>
-            <div className="filter-buttons">
-              <button 
-                className={filter === 'all' ? 'active' : ''}
-                onClick={() => setFilter('all')}
-              >
-                Все задачи
-              </button>
-              <button 
-                className={filter === 'general' ? 'active' : ''}
-                onClick={() => setFilter('general')}
-              >
-                Общие дела
-              </button>
-              <button 
-                className={filter === 'completed' ? 'active' : ''}
-                onClick={() => setFilter('completed')}
-              >
-                Выполненные
-              </button>
-              <button 
-                className={filter === 'pending' ? 'active' : ''}
-                onClick={() => setFilter('pending')}
-              >
-                В работе
-              </button>
-              <button 
-                className={filter === 'high' ? 'active' : ''}
-                onClick={() => setFilter('high')}
-              >
-                🔴 Высокая важность
-              </button>
-              <button 
-                className={filter === 'medium' ? 'active' : ''}
-                onClick={() => setFilter('medium')}
-              >
-                🟡 Средняя важность
-              </button>
-              <button 
-                className={filter === 'low' ? 'active' : ''}
-                onClick={() => setFilter('low')}
-              >
-                🟢 Низкая важность
-              </button>
+            <h3>Фильтр задач</h3>
+            <select 
+              value={filter} 
+              onChange={(e) => setFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">Все задачи</option>
+              <option value="general">Общие дела</option>
+              <option value="completed">Выполненные</option>
+              <option value="pending">В работе</option>
+              <option value="high">🔴 Высокая важность</option>
+              <option value="medium">🟡 Средняя важность</option>
+              <option value="low">🟢 Низкая важность</option>
               {assignees.map(assignee => (
-                <button
-                  key={assignee}
-                  className={filter === assignee ? 'active' : ''}
-                  onClick={() => setFilter(assignee)}
-                >
+                <option key={assignee} value={assignee}>
                   {assignee}
-                </button>
+                </option>
               ))}
-            </div>
+            </select>
           </div>
         </div>
 
