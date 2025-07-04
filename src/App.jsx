@@ -4,9 +4,6 @@ import './App.css'
 
 export default function App() {
   const [tasks, setTasks] = useState([])
-  const [newTask, setNewTask] = useState('')
-  const [assignee, setAssignee] = useState('')
-  const [priority, setPriority] = useState('medium')
   const [filter, setFilter] = useState('all')
   const [assignees, setAssignees] = useState(['Алексей', 'Мария', 'Дмитрий', 'Анна'])
   const [newAssignee, setNewAssignee] = useState('')
@@ -18,9 +15,12 @@ export default function App() {
     task: '',
     department: '',
     lastName: '',
-    roomNumber: ''
+    roomNumber: '',
+    assignee: '',
+    priority: 'medium'
   })
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
+  const [activeTab, setActiveTab] = useState('general')
 
   // Загрузка данных из localStorage
   useEffect(() => {
@@ -57,6 +57,22 @@ export default function App() {
     localStorage.setItem('todoAuth', isAuthenticated.toString())
   }, [currentUser, isAuthenticated])
 
+  // Симуляция получения новых задач (здесь будет звук и уведомление)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Симуляция получения новой задачи каждые 30 секунд (для демонстрации)
+      // В реальном приложении это будет WebSocket или polling API
+      const shouldReceiveTask = Math.random() < 0.1 // 10% вероятность каждые 30 сек
+
+      if (shouldReceiveTask && tasks.length > 0) {
+        playNotificationSound()
+        showNotification('Поступила новая задача!', 'success')
+      }
+    }, 30000)
+
+    return () => clearInterval(interval)
+  }, [tasks.length])
+
   const playNotificationSound = () => {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)()
     const oscillator = audioContext.createOscillator()
@@ -81,35 +97,14 @@ export default function App() {
     }, 3000)
   }
 
-  const addTask = () => {
-    if (newTask.trim()) {
-      const task = {
-        id: Date.now(),
-        text: newTask,
-        assignee: assignee || 'Общие дела',
-        priority: priority,
-        author: `${currentUser.firstName} ${currentUser.lastName}`,
-        completed: false,
-        createdAt: new Date().toLocaleString()
-      }
-      setTasks([...tasks, task])
-      setNewTask('')
-      setAssignee('')
-      setPriority('medium')
-      
-      playNotificationSound()
-      showNotification('Задача успешно добавлена!')
-    }
-  }
-
   const addTaskFromModal = () => {
     if (newTaskForm.task.trim() && newTaskForm.department.trim() && 
         newTaskForm.lastName.trim() && newTaskForm.roomNumber.trim()) {
       const task = {
         id: Date.now(),
         text: newTaskForm.task,
-        assignee: assignee || 'Общие дела',
-        priority: priority,
+        assignee: newTaskForm.assignee || 'Общие дела',
+        priority: newTaskForm.priority,
         author: `${currentUser.firstName} ${currentUser.lastName}`,
         department: newTaskForm.department,
         lastName: newTaskForm.lastName,
@@ -118,13 +113,17 @@ export default function App() {
         createdAt: new Date().toLocaleString()
       }
       setTasks([...tasks, task])
-      setNewTaskForm({ task: '', department: '', lastName: '', roomNumber: '' })
-      setAssignee('')
-      setPriority('medium')
+      setNewTaskForm({ 
+        task: '', 
+        department: '', 
+        lastName: '', 
+        roomNumber: '', 
+        assignee: '',
+        priority: 'medium' 
+      })
       setShowTaskModal(false)
       
-      playNotificationSound()
-      showNotification('Задача успешно добавлена!')
+      showNotification('Задача успешно создана!')
     } else {
       showNotification('Пожалуйста, заполните все поля', 'error')
     }
@@ -138,12 +137,14 @@ export default function App() {
 
   const deleteTask = (id) => {
     setTasks(tasks.filter(task => task.id !== id))
+    showNotification('Задача удалена')
   }
 
   const addAssignee = () => {
     if (newAssignee.trim() && !assignees.includes(newAssignee)) {
       setAssignees([...assignees, newAssignee])
       setNewAssignee('')
+      showNotification('Исполнитель добавлен')
     }
   }
 
@@ -155,6 +156,7 @@ export default function App() {
         ? { ...task, assignee: 'Общие дела' }
         : task
     ))
+    showNotification('Исполнитель удален')
   }
 
   const handleLogin = () => {
@@ -175,16 +177,13 @@ export default function App() {
     localStorage.removeItem('todoAuth')
   }
 
-  const filteredTasks = tasks.filter(task => {
-    if (filter === 'all') return true
-    if (filter === 'general') return task.assignee === 'Общие дела'
-    if (filter === 'completed') return task.completed
-    if (filter === 'pending') return !task.completed
-    if (filter === 'high') return task.priority === 'high'
-    if (filter === 'medium') return task.priority === 'medium'
-    if (filter === 'low') return task.priority === 'low'
-    return task.assignee === filter
-  })
+  const getFilteredTasks = (tabFilter) => {
+    return tasks.filter(task => {
+      if (tabFilter === 'general') return task.assignee === 'Общие дела'
+      if (tabFilter === 'all') return true
+      return task.assignee === tabFilter
+    })
+  }
 
   const getTaskStats = () => {
     const total = tasks.length
@@ -282,31 +281,7 @@ export default function App() {
             </ul>
           </div>
 
-          <div className="filters">
-            <h3>Фильтр задач</h3>
-            <select 
-              value={filter} 
-              onChange={(e) => setFilter(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">Все задачи</option>
-              <option value="general">Общие дела</option>
-              <option value="completed">Выполненные</option>
-              <option value="pending">В работе</option>
-              <option value="high">🔴 Высокая важность</option>
-              <option value="medium">🟡 Средняя важность</option>
-              <option value="low">🟢 Низкая важность</option>
-              {assignees.map(assignee => (
-                <option key={assignee} value={assignee}>
-                  {assignee}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="content">
-          <div className="add-task-header">
+          <div className="add-task-section">
             <button 
               onClick={() => setShowTaskModal(true)} 
               className="add-task-button"
@@ -314,51 +289,88 @@ export default function App() {
               ➕ Добавить новую задачу
             </button>
           </div>
+        </div>
 
-          <div className="task-list">
-            {filteredTasks.length === 0 ? (
-              <div className="no-tasks">
-                {filter === 'all' ? 'Нет задач' : `Нет задач для фильтра "${filter}"`}
-              </div>
-            ) : (
-              filteredTasks.map(task => (
-                <div 
-                  key={task.id} 
-                  className={`task-item ${task.completed ? 'completed' : ''}`}
+        <div className="content">
+          <div className="tabs-container">
+            <div className="tabs">
+              <button 
+                className={`tab ${activeTab === 'general' ? 'active' : ''}`}
+                onClick={() => setActiveTab('general')}
+              >
+                Общие дела ({getFilteredTasks('general').length})
+              </button>
+              {assignees.map(assignee => (
+                <button
+                  key={assignee}
+                  className={`tab ${activeTab === assignee ? 'active' : ''}`}
+                  onClick={() => setActiveTab(assignee)}
                 >
-                  <div className="task-content">
-                    <input
-                      type="checkbox"
-                      checked={task.completed}
-                      onChange={() => toggleTask(task.id)}
-                    />
-                    <div className="task-info">
-                      <span className="task-text">{task.text}</span>
-                      <div className="task-meta">
-                        <span className="assignee">{task.assignee}</span>
+                  {assignee} ({getFilteredTasks(assignee).length})
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="table-container">
+            <table className="tasks-table">
+              <thead>
+                <tr>
+                  <th>Статус</th>
+                  <th>Задача</th>
+                  <th>Подразделение</th>
+                  <th>Контакт</th>
+                  <th>Кабинет</th>
+                  <th>Приоритет</th>
+                  <th>Автор</th>
+                  <th>Создано</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody>
+                {getFilteredTasks(activeTab).length === 0 ? (
+                  <tr>
+                    <td colSpan="9" className="no-tasks">
+                      Нет задач для "{activeTab === 'general' ? 'Общие дела' : activeTab}"
+                    </td>
+                  </tr>
+                ) : (
+                  getFilteredTasks(activeTab).map(task => (
+                    <tr key={task.id} className={task.completed ? 'completed' : ''}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={task.completed}
+                          onChange={() => toggleTask(task.id)}
+                        />
+                      </td>
+                      <td className="task-text">{task.text}</td>
+                      <td>{task.department}</td>
+                      <td>{task.lastName}</td>
+                      <td>{task.roomNumber}</td>
+                      <td>
                         <span className={`priority priority-${task.priority}`}>
                           {task.priority === 'high' && '🔴 Высокая'}
                           {task.priority === 'medium' && '🟡 Средняя'}
                           {task.priority === 'low' && '🟢 Низкая'}
                         </span>
-                        {task.department && <span className="department">🏢 {task.department}</span>}
-                        {task.lastName && <span className="contact">👤 {task.lastName}</span>}
-                        {task.roomNumber && <span className="room">🚪 Каб. {task.roomNumber}</span>}
-                        <span className="author">Автор: {task.author}</span>
-                        <span className="created-at">{task.createdAt}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => deleteTask(task.id)}
-                    className="delete-btn"
-                    title="Удалить задачу"
-                  >
-                    🗑️
-                  </button>
-                </div>
-              ))
-            )}
+                      </td>
+                      <td className="author">{task.author}</td>
+                      <td className="created-at">{task.createdAt}</td>
+                      <td>
+                        <button 
+                          onClick={() => deleteTask(task.id)}
+                          className="delete-btn"
+                          title="Удалить задачу"
+                        >
+                          🗑️
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -430,8 +442,8 @@ export default function App() {
                   <div className="form-group">
                     <label>Исполнитель</label>
                     <select 
-                      value={assignee} 
-                      onChange={(e) => setAssignee(e.target.value)}
+                      value={newTaskForm.assignee} 
+                      onChange={(e) => setNewTaskForm({...newTaskForm, assignee: e.target.value})}
                     >
                       <option value="">Общие дела</option>
                       {assignees.map(assignee => (
@@ -444,8 +456,8 @@ export default function App() {
                 <div className="form-group">
                   <label>Приоритет</label>
                   <select 
-                    value={priority} 
-                    onChange={(e) => setPriority(e.target.value)}
+                    value={newTaskForm.priority} 
+                    onChange={(e) => setNewTaskForm({...newTaskForm, priority: e.target.value})}
                     className="priority-select"
                   >
                     <option value="high">🔴 Высокая</option>

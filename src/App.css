@@ -269,7 +269,7 @@ body {
   border-color: #667eea;
 }
 
-.add-task-header {
+.add-task-section {
   background: white;
   padding: 1.5rem;
   border-radius: 12px;
@@ -278,6 +278,7 @@ body {
 }
 
 .add-task-button {
+  width: 100%;
   padding: 1rem 2rem;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -293,6 +294,124 @@ body {
 .add-task-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+/* Вкладки */
+.tabs-container {
+  background: white;
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  border-bottom: 1px solid #e9ecef;
+}
+
+.tabs {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  padding: 1rem 1.5rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6c757d;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s;
+  white-space: nowrap;
+  min-width: fit-content;
+}
+
+.tab:hover {
+  color: #667eea;
+  background: #f8f9ff;
+}
+
+.tab.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+  background: #f8f9ff;
+}
+
+/* Таблица */
+.table-container {
+  background: white;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  overflow: hidden;
+  overflow-x: auto;
+}
+
+.tasks-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+.tasks-table th,
+.tasks-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e9ecef;
+  vertical-align: middle;
+}
+
+.tasks-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.tasks-table td {
+  font-size: 0.9rem;
+}
+
+.tasks-table tr:hover {
+  background: #f8f9ff;
+}
+
+.tasks-table tr.completed {
+  opacity: 0.6;
+}
+
+.tasks-table tr.completed .task-text {
+  text-decoration: line-through;
+}
+
+.task-text {
+  max-width: 200px;
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+.author {
+  color: #6c757d;
+  font-style: italic;
+  font-size: 0.8rem;
+}
+
+.created-at {
+  color: #6c757d;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.no-tasks {
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  padding: 3rem;
 }
 
 /* Уведомления */
@@ -710,13 +829,53 @@ body {
     font-size: 16px;
   }
 
-  .add-task-header {
+  .add-task-section {
     padding: 1rem;
   }
 
   .add-task-button {
     padding: 0.875rem 1.5rem;
     font-size: 1rem;
+  }
+
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .tab {
+    padding: 0.75rem 1rem;
+    font-size: 0.8rem;
+    min-width: 120px;
+  }
+
+  .table-container {
+    overflow-x: auto;
+  }
+
+  .tasks-table {
+    min-width: 600px;
+  }
+
+  .tasks-table th,
+  .tasks-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .task-text {
+    max-width: 150px;
+    font-size: 0.8rem;
+  }
+
+  .priority {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .author,
+  .created-at {
+    font-size: 0.7rem;
   }
 
   .modal-content {
