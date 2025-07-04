@@ -336,6 +336,7 @@ body {
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  align-items: center;
 }
 
 .tabs::-webkit-scrollbar {
@@ -365,6 +366,54 @@ body {
   color: #667eea;
   border-bottom-color: #667eea;
   background: #f8f9ff;
+}
+
+.tab-with-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tab-with-actions:hover .tab-delete-btn {
+  opacity: 1;
+}
+
+.tab-delete-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 20px;
+  height: 20px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.3s;
+  z-index: 10;
+}
+
+.tab-delete-btn:hover {
+  background: #c82333;
+  transform: scale(1.1);
+}
+
+.add-assignee-tab {
+  background: #f8f9fa !important;
+  color: #667eea !important;
+  border: 2px dashed #667eea !important;
+  border-bottom: 3px solid transparent !important;
+  margin-left: 0.5rem;
+}
+
+.add-assignee-tab:hover {
+  background: #e9ecef !important;
+  border-color: #5a6fd8 !important;
 }
 
 /* Таблица */
@@ -616,6 +665,32 @@ body {
 
 .submit-button:hover {
   background: #5a6fd8;
+}
+
+.delete-button {
+  padding: 0.75rem 1.5rem;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.3s;
+}
+
+.delete-button:hover {
+  background: #c82333;
+}
+
+.confirm-modal {
+  max-width: 400px;
+}
+
+.warning-text {
+  color: #dc3545;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  font-style: italic;
 }
 
 @keyframes fadeIn {
@@ -888,6 +963,26 @@ body {
     padding: 0.75rem 1rem;
     font-size: 0.8rem;
     min-width: 120px;
+  }
+
+  .tab-with-actions {
+    position: relative;
+  }
+
+  .tab-delete-btn {
+    opacity: 1;
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+  }
+
+  .add-assignee-tab {
+    font-size: 0.8rem;
+    padding: 0.75rem 1rem;
+    margin-left: 0.25rem;
   }
 
   .table-container {

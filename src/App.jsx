@@ -21,6 +21,7 @@ export default function App() {
   })
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
   const [activeTab, setActiveTab] = useState('all')
+  const [confirmDelete, setConfirmDelete] = useState({ show: false, assignee: null })
 
   // Загрузка данных из localStorage
   useEffect(() => {
@@ -160,6 +161,21 @@ export default function App() {
         : task
     ))
     showNotification('Исполнитель удален')
+  }
+
+  const confirmRemoveAssignee = (assignee) => {
+    setConfirmDelete({ show: true, assignee })
+  }
+
+  const handleConfirmDelete = () => {
+    if (confirmDelete.assignee) {
+      removeAssignee(confirmDelete.assignee)
+      setConfirmDelete({ show: false, assignee: null })
+    }
+  }
+
+  const handleCancelDelete = () => {
+    setConfirmDelete({ show: false, assignee: null })
   }
 
   const handleLogin = () => {
@@ -309,14 +325,32 @@ export default function App() {
                 Общие дела ({getFilteredTasks('Общие дела').length})
               </button>
               {assignees.map(assignee => (
-                <button
-                  key={assignee}
-                  className={`tab ${activeTab === assignee ? 'active' : ''}`}
-                  onClick={() => setActiveTab(assignee)}
-                >
-                  {assignee} ({getFilteredTasks(assignee).length})
-                </button>
+                <div key={assignee} className="tab-with-actions">
+                  <button
+                    className={`tab ${activeTab === assignee ? 'active' : ''}`}
+                    onClick={() => setActiveTab(assignee)}
+                  >
+                    {assignee} ({getFilteredTasks(assignee).length})
+                  </button>
+                  <button
+                    className="tab-delete-btn"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      confirmRemoveAssignee(assignee)
+                    }}
+                    title="Удалить исполнителя"
+                  >
+                    ×
+                  </button>
+                </div>
               ))}
+              <button
+                className="tab add-assignee-tab"
+                onClick={() => setShowAssigneeModal(true)}
+                title="Добавить исполнителя"
+              >
+                ➕ Добавить исполнителя
+              </button>
             </div>
           </div>
 
@@ -545,6 +579,43 @@ export default function App() {
                   className="submit-button"
                 >
                   Добавить исполнителя
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Модальное окно подтверждения удаления исполнителя */}
+        {confirmDelete.show && (
+          <div className="modal-overlay" onClick={handleCancelDelete}>
+            <div className="modal-content confirm-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>⚠️ Подтверждение удаления</h2>
+                <button 
+                  className="close-button"
+                  onClick={handleCancelDelete}
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="modal-body">
+                <p>Вы уверены, что хотите удалить исполнителя <strong>"{confirmDelete.assignee}"</strong>?</p>
+                <p className="warning-text">Все задачи этого исполнителя будут перенесены в "Общие дела".</p>
+              </div>
+
+              <div className="modal-footer">
+                <button 
+                  onClick={handleCancelDelete}
+                  className="cancel-button"
+                >
+                  Отмена
+                </button>
+                <button 
+                  onClick={handleConfirmDelete}
+                  className="delete-button"
+                >
+                  Удалить исполнителя
                 </button>
               </div>
             </div>
