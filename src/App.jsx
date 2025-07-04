@@ -20,7 +20,8 @@ export default function App() {
     priority: 'medium'
   })
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
-  const [activeTab, setActiveTab] = useState('general')
+  const [activeTab, setActiveTab] = useState('all')
+  const [showAssigneeModal, setShowAssigneeModal] = useState(false)
 
   // Загрузка данных из localStorage
   useEffect(() => {
@@ -179,8 +180,8 @@ export default function App() {
 
   const getFilteredTasks = (tabFilter) => {
     return tasks.filter(task => {
-      if (tabFilter === 'general') return task.assignee === 'Общие дела'
       if (tabFilter === 'all') return true
+      if (tabFilter === 'general') return task.assignee === 'Общие дела'
       return task.assignee === tabFilter
     })
   }
@@ -253,34 +254,6 @@ export default function App() {
 
       <div className="main-content">
         <div className="sidebar">
-          <div className="assignee-management">
-            <h3>Исполнители</h3>
-            <div className="add-assignee">
-              <input
-                type="text"
-                value={newAssignee}
-                onChange={(e) => setNewAssignee(e.target.value)}
-                placeholder="Новый исполнитель"
-                onKeyPress={(e) => e.key === 'Enter' && addAssignee()}
-              />
-              <button onClick={addAssignee}>+</button>
-            </div>
-            <ul className="assignee-list">
-              {assignees.map(assignee => (
-                <li key={assignee} className="assignee-item">
-                  <span>{assignee}</span>
-                  <button 
-                    onClick={() => removeAssignee(assignee)}
-                    className="remove-btn"
-                    title="Удалить исполнителя"
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-
           <div className="add-task-section">
             <button 
               onClick={() => setShowTaskModal(true)} 
@@ -289,11 +262,27 @@ export default function App() {
               ➕ Добавить новую задачу
             </button>
           </div>
+
+          <div className="add-task-section">
+            <button 
+              onClick={() => setShowAssigneeModal(true)} 
+              className="add-task-button"
+              style={{ background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)' }}
+            >
+              👥 Управление исполнителями
+            </button>
+          </div>
         </div>
 
         <div className="content">
           <div className="tabs-container">
             <div className="tabs">
+              <button 
+                className={`tab ${activeTab === 'all' ? 'active' : ''}`}
+                onClick={() => setActiveTab('all')}
+              >
+                Все задачи ({getFilteredTasks('all').length})
+              </button>
               <button 
                 className={`tab ${activeTab === 'general' ? 'active' : ''}`}
                 onClick={() => setActiveTab('general')}
@@ -331,7 +320,11 @@ export default function App() {
                 {getFilteredTasks(activeTab).length === 0 ? (
                   <tr>
                     <td colSpan="9" className="no-tasks">
-                      Нет задач для "{activeTab === 'general' ? 'Общие дела' : activeTab}"
+                      Нет задач для "{
+                        activeTab === 'all' ? 'Все задачи' : 
+                        activeTab === 'general' ? 'Общие дела' : 
+                        activeTab
+                      }"
                     </td>
                   </tr>
                 ) : (
@@ -479,6 +472,68 @@ export default function App() {
                   className="submit-button"
                 >
                   Добавить задачу
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Модальное окно для управления исполнителями */}
+        {showAssigneeModal && (
+          <div className="modal-overlay" onClick={() => setShowAssigneeModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>👥 Управление исполнителями</h2>
+                <button 
+                  className="close-button"
+                  onClick={() => setShowAssigneeModal(false)}
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Добавить нового исполнителя</label>
+                  <div className="add-assignee">
+                    <input
+                      type="text"
+                      value={newAssignee}
+                      onChange={(e) => setNewAssignee(e.target.value)}
+                      placeholder="Имя нового исполнителя"
+                      onKeyPress={(e) => e.key === 'Enter' && addAssignee()}
+                    />
+                    <button onClick={addAssignee} className="submit-button">
+                      Добавить
+                    </button>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Текущие исполнители</label>
+                  <ul className="assignee-list">
+                    {assignees.map(assignee => (
+                      <li key={assignee} className="assignee-item">
+                        <span>{assignee}</span>
+                        <button 
+                          onClick={() => removeAssignee(assignee)}
+                          className="remove-btn"
+                          title="Удалить исполнителя"
+                        >
+                          ×
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button 
+                  onClick={() => setShowAssigneeModal(false)}
+                  className="cancel-button"
+                >
+                  Закрыть
                 </button>
               </div>
             </div>
