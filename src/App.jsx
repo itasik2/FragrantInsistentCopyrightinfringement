@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react'
 import './App.css'
 
+const API_BASE = 'http://localhost:3001/api';
+
 export default function App() {
   const [tasks, setTasks] = useState([])
   const [assignees, setAssignees] = useState(['Алексей', 'Мария', 'Дмитрий', 'Анна'])
@@ -23,36 +25,60 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('all')
   const [confirmDelete, setConfirmDelete] = useState({ show: false, assignee: null })
 
-  // Загрузка данных из localStorage
+  // API функции
+  const apiRequest = async (url, options = {}) => {
+    try {
+      const response = await fetch(`${API_BASE}${url}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        ...options,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('API error:', error);
+      showNotification('Ошибка соединения с сервером', 'error');
+      throw error;
+    }
+  };
+
+  const loadData = async () => {
+    try {
+      const data = await apiRequest('/data');
+      setTasks(data.tasks || []);
+      setAssignees(data.assignees || []);
+    } catch (error) {
+      console.error('Ошибка загрузки данных:', error);
+    }
+  };
+
+  // Загрузка данных при монтировании компонента
   useEffect(() => {
-    const savedTasks = localStorage.getItem('todoTasks')
-    const savedAssignees = localStorage.getItem('todoAssignees')
     const savedUser = localStorage.getItem('todoUser')
     const savedAuth = localStorage.getItem('todoAuth')
     
-    if (savedTasks) {
-      setTasks(JSON.parse(savedTasks))
-    }
-    if (savedAssignees) {
-      setAssignees(JSON.parse(savedAssignees))
-    }
     if (savedUser) {
       setCurrentUser(JSON.parse(savedUser))
     }
     if (savedAuth === 'true') {
       setIsAuthenticated(true)
     }
+
+    // Загружаем данные с сервера
+    loadData();
+
+    // Обновляем данные каждые 5 секунд
+    const interval = setInterval(loadData, 5000);
+    return () => clearInterval(interval);
   }, [])
 
-  // Сохранение данных в localStorage
-  useEffect(() => {
-    localStorage.setItem('todoTasks', JSON.stringify(tasks))
-  }, [tasks])
-
-  useEffect(() => {
-    localStorage.setItem('todoAssignees', JSON.stringify(assignees))
-  }, [assignees])
-
+  // Сохранение пользователя в localStorage (только данные авторизации)
   useEffect(() => {
     localStorage.setItem('todoUser', JSON.stringify(currentUser))
     localStorage.setItem('todoAuth', isAuthenticated.toString())
@@ -60,18 +86,12 @@ export default function App() {
 
   // Симуляция получения новых задач (здесь будет звук и уведомление)
   useEffect(() => {
-    const interval = setInterval(() => {
-      // Симуляция получения новой задачи каждые 30 секунд (для демонстрации)
-      // В реальном приложении это будет WebSocket или polling API
-      const shouldReceiveTask = Math.random() < 0.1 // 10% вероятность каждые 30 сек
-
-      if (shouldReceiveTask && tasks.length > 0) {
-        playNotificationSound()
-        showNotification('Поступила новая задача!', 'success')
-      }
-    }, 30000)
-
-    return () => clearInterval(interval)
+    let previousTaskCount = tasks.length;
+    
+    if (previousTaskCount > 0 && tasks.length > previousTaskCount) {
+      playNotificationSound()
+      showNotification('Поступила новая задача!', 'success')
+    }
   }, [tasks.length])
 
   const playNotificationSound = () => {
@@ -98,70 +118,112 @@ export default function App() {
     }, 3000)
   }
 
-  const addTaskFromModal = () => {
+  const addTaskFromModal = async () => {
     if (newTaskForm.task.trim() && newTaskForm.department.trim() && 
         newTaskForm.lastName.trim() && newTaskForm.roomNumber.trim()) {
-      const task = {
-        id: Date.now(),
-        text: newTaskForm.task,
-        assignee: newTaskForm.assignee || 'Общие дела',
-        priority: newTaskForm.priority,
-        author: `${currentUser.firstName} ${currentUser.lastName}`,
-        department: newTaskForm.department,
-        lastName: newTaskForm.lastName,
-        roomNumber: newTaskForm.roomNumber,
-        completed: false,
-        createdAt: new Date().toLocaleString()
+      try {
+        const taskData = {
+          text: newTaskForm.task,
+          assignee: newTaskForm.assignee || 'Общие дела',
+          priority: newTaskForm.priority,
+          author: `${currentUser.firstName} ${currentUser.lastName}`,
+          department: newTaskForm.department,
+          lastName: newTaskForm.lastName,
+          roomNumber: newTaskForm.roomNumber,
+          completed: false
+        };
+
+        const newTask = await apiRequest('/tasks', {
+          method: 'POST',
+          body: JSON.stringify(taskData),
+        });
+
+        setTasks([...tasks, newTask]);
+        setNewTaskForm({ 
+          task: '', 
+          department: '', 
+          lastName: '', 
+          roomNumber: '', 
+          assignee: '',
+          priority: 'medium' 
+        });
+        setShowTaskModal(false);
+        showNotification('Задача успешно создана!');
+      } catch (error) {
+        showNotification('Ошибка при создании задачи', 'error');
       }
-      setTasks([...tasks, task])
-      setNewTaskForm({ 
-        task: '', 
-        department: '', 
-        lastName: '', 
-        roomNumber: '', 
-        assignee: '',
-        priority: 'medium' 
-      })
-      setShowTaskModal(false)
-      
-      showNotification('Задача успешно создана!')
     } else {
-      showNotification('Пожалуйста, заполните все поля', 'error')
+      showNotification('Пожалуйста, заполните все поля', 'error');
     }
-  }
+  };
 
-  const toggleTask = (id) => {
-    setTasks(tasks.map(task => 
-      task.id === id ? { ...task, completed: !task.completed } : task
-    ))
-  }
+  const toggleTask = async (id) => {
+    try {
+      const task = tasks.find(t => t.id === id);
+      const updatedTask = await apiRequest(`/tasks/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ completed: !task.completed }),
+      });
 
-  const deleteTask = (id) => {
-    setTasks(tasks.filter(task => task.id !== id))
-    showNotification('Задача удалена')
-  }
+      setTasks(tasks.map(task => 
+        task.id === id ? updatedTask : task
+      ));
+    } catch (error) {
+      showNotification('Ошибка при обновлении задачи', 'error');
+    }
+  };
 
-  const addAssignee = () => {
+  const deleteTask = async (id) => {
+    try {
+      await apiRequest(`/tasks/${id}`, {
+        method: 'DELETE',
+      });
+
+      setTasks(tasks.filter(task => task.id !== id));
+      showNotification('Задача удалена');
+    } catch (error) {
+      showNotification('Ошибка при удалении задачи', 'error');
+    }
+  };
+
+  const addAssignee = async () => {
     if (newAssignee.trim() && !assignees.includes(newAssignee)) {
-      setAssignees([...assignees, newAssignee])
-      setNewAssignee('')
-      setShowAssigneeModal(false)
-      showNotification('Исполнитель добавлен')
-    } else if (assignees.includes(newAssignee)) {
-      showNotification('Такой исполнитель уже существует', 'error')
-    }
-  }
+      try {
+        await apiRequest('/assignees', {
+          method: 'POST',
+          body: JSON.stringify({ name: newAssignee }),
+        });
 
-  const removeAssignee = (assigneeToRemove) => {
-    setAssignees(assignees.filter(a => a !== assigneeToRemove))
-    // Переназначить задачи удаленного исполнителя на "Общие дела"
-    setTasks(tasks.map(task => 
-      task.assignee === assigneeToRemove 
-        ? { ...task, assignee: 'Общие дела' }
-        : task
-    ))
-    showNotification('Исполнитель удален')
-  }
+        setAssignees([...assignees, newAssignee]);
+        setNewAssignee('');
+        setShowAssigneeModal(false);
+        showNotification('Исполнитель добавлен');
+      } catch (error) {
+        showNotification('Ошибка при добавлении исполнителя', 'error');
+      }
+    } else if (assignees.includes(newAssignee)) {
+      showNotification('Такой исполнитель уже существует', 'error');
+    }
+  };
+
+  const removeAssignee = async (assigneeToRemove) => {
+    try {
+      await apiRequest(`/assignees/${encodeURIComponent(assigneeToRemove)}`, {
+        method: 'DELETE',
+      });
+
+      setAssignees(assignees.filter(a => a !== assigneeToRemove));
+      // Обновляем задачи локально
+      setTasks(tasks.map(task => 
+        task.assignee === assigneeToRemove 
+          ? { ...task, assignee: 'Общие дела' }
+          : task
+      ));
+      showNotification('Исполнитель удален');
+    } catch (error) {
+      showNotification('Ошибка при удалении исполнителя', 'error');
+    }
+  };
 
   const confirmRemoveAssignee = (assignee) => {
     setConfirmDelete({ show: true, assignee })
