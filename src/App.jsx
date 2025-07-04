@@ -257,27 +257,30 @@ export default function App() {
       <div className="main-content">
         <div className="sidebar">
           <div className="assignee-management">
-            <h3>Исполнители</h3>
-            <button 
-              onClick={() => setShowAssigneeModal(true)}
-              className="add-assignee-button"
-            >
-              ➕ Добавить исполнителя
-            </button>
-            <ul className="assignee-list">
+            <div className="assignee-header">
+              <h3>👥 Исполнители ({assignees.length})</h3>
+              <button 
+                onClick={() => setShowAssigneeModal(true)}
+                className="add-assignee-compact"
+                title="Добавить исполнителя"
+              >
+                ➕
+              </button>
+            </div>
+            <div className="assignee-grid">
               {assignees.map(assignee => (
-                <li key={assignee} className="assignee-item">
+                <div key={assignee} className="assignee-tag">
                   <span>{assignee}</span>
                   <button 
                     onClick={() => removeAssignee(assignee)}
-                    className="remove-btn"
+                    className="remove-btn-small"
                     title="Удалить исполнителя"
                   >
                     ×
                   </button>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
 
           <div className="add-task-section">
