@@ -4,13 +4,13 @@ import './App.css'
 
 export default function App() {
   const [tasks, setTasks] = useState([])
-  const [filter, setFilter] = useState('all')
   const [assignees, setAssignees] = useState(['Алексей', 'Мария', 'Дмитрий', 'Анна'])
   const [newAssignee, setNewAssignee] = useState('')
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentUser, setCurrentUser] = useState({ firstName: '', lastName: '' })
   const [loginForm, setLoginForm] = useState({ firstName: '', lastName: '' })
   const [showTaskModal, setShowTaskModal] = useState(false)
+  const [showAssigneeModal, setShowAssigneeModal] = useState(false)
   const [newTaskForm, setNewTaskForm] = useState({
     task: '',
     department: '',
@@ -20,7 +20,7 @@ export default function App() {
     priority: 'medium'
   })
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
-  const [activeTab, setActiveTab] = useState('general')
+  const [activeTab, setActiveTab] = useState('all')
 
   // Загрузка данных из localStorage
   useEffect(() => {
@@ -144,7 +144,10 @@ export default function App() {
     if (newAssignee.trim() && !assignees.includes(newAssignee)) {
       setAssignees([...assignees, newAssignee])
       setNewAssignee('')
+      setShowAssigneeModal(false)
       showNotification('Исполнитель добавлен')
+    } else if (assignees.includes(newAssignee)) {
+      showNotification('Такой исполнитель уже существует', 'error')
     }
   }
 
@@ -177,12 +180,12 @@ export default function App() {
     localStorage.removeItem('todoAuth')
   }
 
+  // Функция для получения отфильтрованных задач
   const getFilteredTasks = (tabFilter) => {
-    return tasks.filter(task => {
-      if (tabFilter === 'general') return task.assignee === 'Общие дела'
-      if (tabFilter === 'all') return true
-      return task.assignee === tabFilter
-    })
+    if (tabFilter === 'all') {
+      return tasks // Все задачи
+    }
+    return tasks.filter(task => task.assignee === tabFilter)
   }
 
   const getTaskStats = () => {
@@ -255,16 +258,12 @@ export default function App() {
         <div className="sidebar">
           <div className="assignee-management">
             <h3>Исполнители</h3>
-            <div className="add-assignee">
-              <input
-                type="text"
-                value={newAssignee}
-                onChange={(e) => setNewAssignee(e.target.value)}
-                placeholder="Новый исполнитель"
-                onKeyPress={(e) => e.key === 'Enter' && addAssignee()}
-              />
-              <button onClick={addAssignee}>+</button>
-            </div>
+            <button 
+              onClick={() => setShowAssigneeModal(true)}
+              className="add-assignee-button"
+            >
+              ➕ Добавить исполнителя
+            </button>
             <ul className="assignee-list">
               {assignees.map(assignee => (
                 <li key={assignee} className="assignee-item">
@@ -295,10 +294,16 @@ export default function App() {
           <div className="tabs-container">
             <div className="tabs">
               <button 
-                className={`tab ${activeTab === 'general' ? 'active' : ''}`}
-                onClick={() => setActiveTab('general')}
+                className={`tab ${activeTab === 'all' ? 'active' : ''}`}
+                onClick={() => setActiveTab('all')}
               >
-                Общие дела ({getFilteredTasks('general').length})
+                Все задачи ({tasks.length})
+              </button>
+              <button 
+                className={`tab ${activeTab === 'Общие дела' ? 'active' : ''}`}
+                onClick={() => setActiveTab('Общие дела')}
+              >
+                Общие дела ({getFilteredTasks('Общие дела').length})
               </button>
               {assignees.map(assignee => (
                 <button
@@ -318,6 +323,7 @@ export default function App() {
                 <tr>
                   <th>Статус</th>
                   <th>Задача</th>
+                  <th>Исполнитель</th>
                   <th>Подразделение</th>
                   <th>Контакт</th>
                   <th>Кабинет</th>
@@ -330,8 +336,11 @@ export default function App() {
               <tbody>
                 {getFilteredTasks(activeTab).length === 0 ? (
                   <tr>
-                    <td colSpan="9" className="no-tasks">
-                      Нет задач для "{activeTab === 'general' ? 'Общие дела' : activeTab}"
+                    <td colSpan="10" className="no-tasks">
+                      {activeTab === 'all' 
+                        ? 'Нет задач' 
+                        : `Нет задач для "${activeTab}"`
+                      }
                     </td>
                   </tr>
                 ) : (
@@ -345,9 +354,18 @@ export default function App() {
                         />
                       </td>
                       <td className="task-text">{task.text}</td>
-                      <td>{task.department}</td>
-                      <td>{task.lastName}</td>
-                      <td>{task.roomNumber}</td>
+                      <td>
+                        <span className="assignee">{task.assignee}</span>
+                      </td>
+                      <td>
+                        <span className="department">{task.department}</span>
+                      </td>
+                      <td>
+                        <span className="contact">{task.lastName}</span>
+                      </td>
+                      <td>
+                        <span className="room">{task.roomNumber}</span>
+                      </td>
                       <td>
                         <span className={`priority priority-${task.priority}`}>
                           {task.priority === 'high' && '🔴 Высокая'}
@@ -479,6 +497,51 @@ export default function App() {
                   className="submit-button"
                 >
                   Добавить задачу
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Модальное окно для добавления исполнителя */}
+        {showAssigneeModal && (
+          <div className="modal-overlay" onClick={() => setShowAssigneeModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>👤 Добавить исполнителя</h2>
+                <button 
+                  className="close-button"
+                  onClick={() => setShowAssigneeModal(false)}
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Имя исполнителя *</label>
+                  <input
+                    type="text"
+                    value={newAssignee}
+                    onChange={(e) => setNewAssignee(e.target.value)}
+                    placeholder="Введите имя исполнителя"
+                    onKeyPress={(e) => e.key === 'Enter' && addAssignee()}
+                  />
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button 
+                  onClick={() => setShowAssigneeModal(false)}
+                  className="cancel-button"
+                >
+                  Отмена
+                </button>
+                <button 
+                  onClick={addAssignee}
+                  className="submit-button"
+                >
+                  Добавить исполнителя
                 </button>
               </div>
             </div>
