@@ -42,19 +42,31 @@ export default function App() {
       
       return await response.json();
     } catch (error) {
-      console.error('API error:', error);
-      showNotification('Ошибка соединения с сервером', 'error');
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        console.error('Сервер недоступен:', error);
+        showNotification('Сервер недоступен. Проверьте подключение.', 'error');
+      } else {
+        console.error('API error:', error);
+        showNotification('Ошибка соединения с сервером', 'error');
+      }
       throw error;
     }
   };
 
-  const loadData = async () => {
+  const loadData = async (retryCount = 0) => {
     try {
       const data = await apiRequest('/data');
       setTasks(data.tasks || []);
       setAssignees(data.assignees || []);
     } catch (error) {
       console.error('Ошибка загрузки данных:', error);
+      
+      // Повторная попытка через 2 секунды, максимум 3 попытки
+      if (retryCount < 3) {
+        setTimeout(() => {
+          loadData(retryCount + 1);
+        }, 2000);
+      }
     }
   };
 
