@@ -23,7 +23,6 @@ localPort = 5173
 externalPort = 80
 
 [workflows]
-runButton = "Start Full Stack"
 
 [[workflows.workflow]]
 name = "Start Full Stack"
