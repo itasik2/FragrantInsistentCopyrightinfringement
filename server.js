@@ -139,31 +139,12 @@ app.delete('/api/assignees/:name', async (req, res) => {
   res.json({ message: 'Исполнитель удален', assignees: data.assignees });
 });
 
-// Обработка ошибок
-app.use((err, req, res, next) => {
-  console.error('Ошибка сервера:', err);
-  res.status(500).json({ error: 'Внутренняя ошибка сервера' });
-});
-
 // Запуск сервера
 const startServer = async () => {
-  try {
-    await initializeData();
-    console.log('Данные инициализированы');
-    
-    const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 Сервер запущен на http://0.0.0.0:${PORT}`);
-      console.log(`📊 API доступен на http://0.0.0.0:${PORT}/api`);
-    });
-
-    server.on('error', (err) => {
-      console.error('Ошибка запуска сервера:', err);
-    });
-
-  } catch (error) {
-    console.error('Критическая ошибка при запуске сервера:', error);
-    process.exit(1);
-  }
+  await initializeData();
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Сервер запущен на http://0.0.0.0:${PORT}`);
+  });
 };
 
 startServer();
