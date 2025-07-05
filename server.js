@@ -143,7 +143,7 @@ app.delete('/api/assignees/:name', async (req, res) => {
 const startServer = async () => {
   await initializeData();
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Сервер запущен на порту ${PORT}`);
+    console.log(`Сервер запущен на http://0.0.0.0:${PORT}`);
   });
 };
 
