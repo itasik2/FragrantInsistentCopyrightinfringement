@@ -1,10 +1,41 @@
 {
-  "tasks": [],
+  "tasks": [
+    {
+      "id": 1753724000400,
+      "foreman": "бббб",
+      "lab": "ььььь",
+      "roomNumber": "ььь",
+      "description": "тттттт",
+      "assignee": "Голод И",
+      "priority": "medium",
+      "createdAt": "28.07.2025, 22:33:20",
+      "status": "выполнено",
+      "acceptedAt": null,
+      "completedAt": "2025-07-28T17:33:33.780Z",
+      "timeSpent": "1ч 0м",
+      "author": "рррр рррр"
+    },
+    {
+      "id": 1753724142571,
+      "foreman": "тттт",
+      "lab": "ттттт",
+      "roomNumber": "ттт",
+      "description": " тттт",
+      "assignee": "Канат А.",
+      "priority": "medium",
+      "createdAt": "28.07.2025, 22:35:42",
+      "status": "выполнено",
+      "acceptedAt": "2025-07-28T17:35:46.289Z",
+      "completedAt": "2025-07-28T17:36:45.272Z",
+      "timeSpent": "2ч 4м",
+      "author": "Admin "
+    }
+  ],
   "assignees": [
-    "Алексей",
-    "Мария",
-    "Дмитрий",
-    "Анна"
+    "Голод И",
+    "Колпаков В.",
+    "Боляк В.",
+    "Канат А."
   ],
   "users": []
 }
