@@ -124,17 +124,17 @@ export default function App() {
   }, [showNotification]);
 
   // Работа с задачами
-  const addTaskFromModal = useCallback(async () => {
+  const addTaskFromModal = useCallback(async (formData) => {
     const requiredFields = ['foreman', 'lab', 'roomNumber', 'description'];
-    const missingFields = requiredFields.filter(field => !newTaskForm[field].trim());
+    const missingFields = requiredFields.filter(field => !formData[field].trim());
     
     if (missingFields.length > 0) {
-      return showNotification("Заполните все обязательные поля", "error");
+      throw new Error("Заполните все обязательные поля");
     }
-
+  
     try {
       const taskData = {
-        ...newTaskForm,
+        ...formData,
         createdAt: new Date().toISOString(),
         status: "новая",
         acceptedAt: null,
@@ -142,27 +142,21 @@ export default function App() {
         timeSpent: null,
         author: `${currentUser.firstName} ${currentUser.lastName}`
       };
-
+  
       const newTask = await apiRequest("/tasks", {
         method: "POST",
         body: JSON.stringify(taskData),
       });
-
+  
       setTasks(prev => [...prev, newTask]);
-      setNewTaskForm({
-        foreman: "",
-        lab: "",
-        roomNumber: "",
-        description: "",
-        assignee: "",
-        priority: "medium"
-      });
-      setShowTaskModal(false);
       showNotification("Заявка создана!");
+      return true;
     } catch (error) {
       console.error("Ошибка при создании заявки:", error);
+      showNotification(error.message || "Ошибка при создании заявки", "error");
+      throw error;
     }
-  }, [apiRequest, currentUser, newTaskForm, showNotification]);
+  }, [apiRequest, currentUser, showNotification]);
 
   const updateTask = useCallback(async (id, updates) => {
     try {
@@ -530,15 +524,66 @@ export default function App() {
     );
   }
 
-  function TaskModal({ show, onClose, formData, onFormChange, assignees, onSubmit }) {
+  function TaskModal({ show, onClose, onSubmit, assignees }) {
+    const [formData, setFormData] = useState({
+      foreman: "",
+      lab: "",
+      roomNumber: "",
+      description: "",
+      assignee: "",
+      priority: "medium"
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+  
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setIsSubmitting(true);
+      
+      try {
+        await onSubmit(formData);
+        // Сбрасываем форму только после успешной отправки
+        setFormData({
+          foreman: "",
+          lab: "",
+          roomNumber: "",
+          description: "",
+          assignee: "",
+          priority: "medium"
+        });
+        onClose(); // Закрываем модальное окно
+      } catch (error) {
+        console.error("Ошибка при отправке формы:", error);
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+  
+    const handleChange = (e) => {
+      const { name, value } = e.target;
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    };
+  
     if (!show) return null;
-
+  
     return (
       <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <form 
+          className="modal-content" 
+          onClick={(e) => e.stopPropagation()}
+          onSubmit={handleSubmit}
+        >
           <div className="modal-header">
             <h2>📝 Новая заявка</h2>
-            <button className="close-button" onClick={onClose}>×</button>
+            <button 
+              type="button"
+              className="close-button" 
+              onClick={onClose}
+            >
+              ×
+            </button>
           </div>
           <div className="modal-body">
             <div className="form-row">
@@ -548,8 +593,10 @@ export default function App() {
                   type="text"
                   name="foreman"
                   value={formData.foreman}
-                  onChange={onFormChange}
+                  onChange={handleChange}
                   placeholder="Иванов Иван Иванович"
+                  required
+                  autoFocus
                 />
               </div>
               <div className="form-group">
@@ -558,8 +605,9 @@ export default function App() {
                   type="text"
                   name="lab"
                   value={formData.lab}
-                  onChange={onFormChange}
+                  onChange={handleChange}
                   placeholder="Название лаборатории"
+                  required
                 />
               </div>
             </div>
@@ -570,8 +618,9 @@ export default function App() {
                   type="text"
                   name="roomNumber"
                   value={formData.roomNumber}
-                  onChange={onFormChange}
+                  onChange={handleChange}
                   placeholder="123"
+                  required
                 />
               </div>
               <div className="form-group">
@@ -579,7 +628,7 @@ export default function App() {
                 <select
                   name="priority"
                   value={formData.priority}
-                  onChange={onFormChange}
+                  onChange={handleChange}
                 >
                   <option value="high">Высокий</option>
                   <option value="medium">Средний</option>
@@ -592,9 +641,10 @@ export default function App() {
               <textarea
                 name="description"
                 value={formData.description}
-                onChange={onFormChange}
+                onChange={handleChange}
                 placeholder="Подробное описание проблемы..."
                 rows="4"
+                required
               />
             </div>
             <div className="form-group">
@@ -602,7 +652,7 @@ export default function App() {
               <select
                 name="assignee"
                 value={formData.assignee}
-                onChange={onFormChange}
+                onChange={handleChange}
               >
                 <option value="">Не назначен</option>
                 {assignees.map(assignee => (
@@ -612,13 +662,27 @@ export default function App() {
             </div>
           </div>
           <div className="modal-footer">
-            <button onClick={onClose} className="cancel-button">Отмена</button>
-            <button onClick={onSubmit} className="submit-button">Создать</button>
-          </div>
+          <button 
+            type="button"
+            onClick={onClose} 
+            className="cancel-button"
+            disabled={isSubmitting}
+          >
+            Отмена
+          </button>
+          <button 
+            type="submit"
+            className="submit-button"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Отправка...' : 'Создать'}
+          </button>
         </div>
-      </div>
-    );
-  }
+      </form>
+    </div>
+  );
+}
+  
 
   function Notification({ show, message, type }) {
     if (!show) return null;
@@ -794,13 +858,14 @@ export default function App() {
         <TaskModal
           show={showTaskModal}
           onClose={() => setShowTaskModal(false)}
-          formData={newTaskForm}
-          onFormChange={(e) => setNewTaskForm(prev => ({
-            ...prev,
-            [e.target.name]: e.target.value
-          }))}
+          onSubmit={async (formData) => {
+            try {
+              await addTaskFromModal(formData);
+            } catch (error) {
+              // Ошибка уже обработана в addTaskFromModal
+            }
+          }}
           assignees={assignees}
-          onSubmit={addTaskFromModal}
         />
       )}
 
