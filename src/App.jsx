@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import "./App.css";
 
-const API_BASE = "/api";
+const API_BASE = import.meta.env.PROD 
+  ? 'https://main.d76yxlpgzkysa.amplifyapp.com/'  // ЗАМЕНИТЕ на реальный URL вашего API сервера
+  : 'http://localhost:3001/api';
 const ADMIN_PASSWORD = "admin123";
 
 export default function App() {
