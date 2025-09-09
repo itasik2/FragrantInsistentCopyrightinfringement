@@ -16,6 +16,17 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const DATA_FILE = path.join(__dirname, 'data.json');
 
+const corsOptions = {
+  origin: [
+    'http://localhost:5173',
+    'https://main.d76yxlpgzkysa.amplifyapp.com',
+    'https://your-custom-domain.com' // если есть кастомный домен
+  ],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
+
 // Middleware
 app.use(cors());
 app.use(express.json());
