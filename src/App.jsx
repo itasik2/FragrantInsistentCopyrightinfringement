@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import "./App.css";
 
-const API_BASE = import.meta.env.PROD 
-  ? 'https://main.d76yxlpgzkysa.amplifyapp.com/'  // ЗАМЕНИТЕ на реальный URL вашего API сервера
-  : 'http://localhost:3001/api';
 const ADMIN_PASSWORD = "admin123";
 
 export default function App() {
@@ -13,14 +10,6 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
-  const [newTaskForm, setNewTaskForm] = useState({
-    foreman: "",
-    lab: "",
-    roomNumber: "",
-    description: "",
-    assignee: "",
-    priority: "medium"
-  });
   const [notification, setNotification] = useState({
     show: false,
     message: "",
@@ -29,7 +18,6 @@ export default function App() {
   const [hideCompleted, setHideCompleted] = useState(false);
   const [dateFilter, setDateFilter] = useState("");
   const [adminMode, setAdminMode] = useState(false);
-  const [newAssignee, setNewAssignee] = useState("");
   const [timeModal, setTimeModal] = useState({
     show: false,
     taskId: null,
@@ -37,6 +25,58 @@ export default function App() {
     minutes: 0,
     error: ""
   });
+
+  // Mock данные для production
+  const mockData = useMemo(() => ({
+    tasks: [
+      {
+        id: 1,
+        foreman: "Иванов Иван Иванович",
+        lab: "Химическая лаборатория",
+        roomNumber: "101",
+        description: "Не работает вытяжной шкаф",
+        status: "новая",
+        priority: "high",
+        createdAt: new Date().toISOString(),
+        assignee: "Петров П.П.",
+        author: "Admin",
+        acceptedAt: null,
+        completedAt: null,
+        timeSpent: null
+      },
+      {
+        id: 2,
+        foreman: "Сидорова Мария",
+        lab: "Физическая лаборатория", 
+        roomNumber: "205",
+        description: "Замена розеток",
+        status: "в работе",
+        priority: "medium",
+        createdAt: new Date(Date.now() - 86400000).toISOString(),
+        acceptedAt: new Date(Date.now() - 43200000).toISOString(),
+        assignee: "Иванов И.И.",
+        author: "Admin",
+        completedAt: null,
+        timeSpent: null
+      },
+      {
+        id: 3,
+        foreman: "Петров Петр",
+        lab: "Биологическая лаборатория",
+        roomNumber: "304",
+        description: "Ремонт микроскопа",
+        status: "выполнено",
+        priority: "low",
+        createdAt: new Date(Date.now() - 172800000).toISOString(),
+        acceptedAt: new Date(Date.now() - 129600000).toISOString(),
+        completedAt: new Date(Date.now() - 86400000).toISOString(),
+        timeSpent: "2ч 30м",
+        assignee: "Сидорова М.В.",
+        author: "Admin"
+      }
+    ],
+    assignees: ["Петров П.П.", "Иванов И.И.", "Сидорова М.В.", "Общие задачи"]
+  }), []);
 
   // Мемоизированные значения
   const stats = useMemo(() => ({
@@ -46,39 +86,12 @@ export default function App() {
     new: tasks.filter(t => t.status === "новая").length
   }), [tasks]);
 
-  // Функция для API запросов
-  const apiRequest = useCallback(async (url, options = {}) => {
-    try {
-      const response = await fetch(`${API_BASE}${url}`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers,
-        },
-        ...options,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("API error:", error);
-      showNotification(error.message || "Ошибка соединения с сервером", "error");
-      throw error;
-    }
-  }, []);
-
   // Загрузка данных
   const loadData = useCallback(async () => {
-    try {
-      const data = await apiRequest("/data");
-      setTasks(data.tasks || []);
-      setAssignees(data.assignees || []);
-    } catch (error) {
-      console.error("Ошибка загрузки данных:", error);
-    }
-  }, [apiRequest]);
+    // Всегда используем mock данные на AWS
+    setTasks(mockData.tasks);
+    setAssignees(mockData.assignees);
+  }, [mockData]);
 
   // Эффекты
   useEffect(() => {
@@ -133,9 +146,10 @@ export default function App() {
     if (missingFields.length > 0) {
       throw new Error("Заполните все обязательные поля");
     }
-  
+
     try {
-      const taskData = {
+      const newTask = {
+        id: Date.now(),
         ...formData,
         createdAt: new Date().toISOString(),
         status: "новая",
@@ -144,12 +158,7 @@ export default function App() {
         timeSpent: null,
         author: `${currentUser.firstName} ${currentUser.lastName}`
       };
-  
-      const newTask = await apiRequest("/tasks", {
-        method: "POST",
-        body: JSON.stringify(taskData),
-      });
-  
+      
       setTasks(prev => [...prev, newTask]);
       showNotification("Заявка создана!");
       return true;
@@ -158,57 +167,47 @@ export default function App() {
       showNotification(error.message || "Ошибка при создании заявки", "error");
       throw error;
     }
-  }, [apiRequest, currentUser, showNotification]);
+  }, [currentUser, showNotification]);
 
   const updateTask = useCallback(async (id, updates) => {
     try {
-      const updatedTask = await apiRequest(`/tasks/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(updates),
-      });
-      setTasks(prev => prev.map(task => task.id === id ? updatedTask : task));
-      return updatedTask;
+      setTasks(prev => prev.map(task => 
+        task.id === id ? { ...task, ...updates } : task
+      ));
+      return { ...updates, id };
     } catch (error) {
       console.error("Ошибка при обновлении заявки:", error);
       throw error;
     }
-  }, [apiRequest]);
+  }, []);
 
   const deleteTask = useCallback(async (id) => {
     try {
-      await apiRequest(`/tasks/${id}`, { method: "DELETE" });
       setTasks(prev => prev.filter(task => task.id !== id));
       showNotification("Заявка удалена");
     } catch (error) {
       showNotification("Ошибка при удалении заявки", "error");
     }
-  }, [apiRequest, showNotification]);
+  }, [showNotification]);
 
   // Работа с исполнителями
   const addAssignee = useCallback(async (assigneeName) => {
     try {
-      await apiRequest("/assignees", {
-        method: "POST",
-        body: JSON.stringify({ name: assigneeName }),
-      });
       setAssignees(prev => [...prev, assigneeName]);
       showNotification("Исполнитель добавлен");
     } catch (error) {
       showNotification("Ошибка при добавлении исполнителя", "error");
     }
-  }, [apiRequest, showNotification]);
+  }, [showNotification]);
 
   const removeAssignee = useCallback(async (assignee) => {
     try {
-      await apiRequest(`/assignees/${encodeURIComponent(assignee)}`, {
-        method: "DELETE",
-      });
       setAssignees(prev => prev.filter(a => a !== assignee));
       showNotification("Исполнитель удалён");
     } catch (error) {
       showNotification("Ошибка при удалении исполнителя", "error");
     }
-  }, [apiRequest, showNotification]);
+  }, [showNotification]);
 
   // Обработка изменения статуса задачи
   const handleStatusChange = useCallback(async (taskId, newStatus, currentStatus) => {
@@ -263,14 +262,9 @@ export default function App() {
   const formatDateTime = useCallback((dateString) => {
     if (!dateString) return "-";
     
-    if (typeof dateString === 'string' && dateString.match(/\d{2}\.\d{2}\.\d{4}, \d{2}:\d{2}/)) {
-      return dateString;
-    }
-  
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
-        console.error('Invalid date:', dateString);
         return "-";
       }
       return date.toLocaleString("ru-RU", {
@@ -281,12 +275,12 @@ export default function App() {
         minute: "2-digit"
       });
     } catch (e) {
-      console.error("Date formatting error:", e);
       return "-";
     }
   }, []);
 
-  // Компоненты
+  // Компоненты остаются без изменений, как в вашем коде
+  // LoginForm, Header, TaskTable, TaskModal, Notification, TimeInputModal, AssigneeManagement
 
   function LoginForm({ onLogin, onAdminLogin }) {
     const [formData, setFormData] = useState({ 
@@ -408,7 +402,8 @@ export default function App() {
     onStatusChange,
     onDelete,
     formatDateTime,
-    onAssigneeChange
+    onAssigneeChange,
+    onTimeSpentChange
   }) {
     const [editingTime, setEditingTime] = useState(null);
     const [timeInput, setTimeInput] = useState("");
@@ -420,9 +415,13 @@ export default function App() {
       setEditingTime(taskId);
     };
 
-    const saveTime = (taskId) => {
-      onAssigneeChange(taskId, timeInput);
-      setEditingTime(null);
+    const saveTime = async (taskId) => {
+      try {
+        await onTimeSpentChange(taskId, timeInput);
+        setEditingTime(null);
+      } catch (error) {
+        console.error("Ошибка сохранения времени:", error);
+      }
     };
 
     return (
@@ -479,7 +478,9 @@ export default function App() {
                           type="text"
                           value={timeInput}
                           onChange={(e) => setTimeInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && saveTime(task.id)}
                           placeholder="Например: 2ч 30м"
+                          autoFocus
                         />
                         <button onClick={() => saveTime(task.id)}>✓</button>
                         <button onClick={() => setEditingTime(null)}>×</button>
@@ -543,7 +544,6 @@ export default function App() {
       
       try {
         await onSubmit(formData);
-        // Сбрасываем форму только после успешной отправки
         setFormData({
           foreman: "",
           lab: "",
@@ -552,7 +552,7 @@ export default function App() {
           assignee: "",
           priority: "medium"
         });
-        onClose(); // Закрываем модальное окно
+        onClose();
       } catch (error) {
         console.error("Ошибка при отправке формы:", error);
       } finally {
@@ -664,27 +664,26 @@ export default function App() {
             </div>
           </div>
           <div className="modal-footer">
-          <button 
-            type="button"
-            onClick={onClose} 
-            className="cancel-button"
-            disabled={isSubmitting}
-          >
-            Отмена
-          </button>
-          <button 
-            type="submit"
-            className="submit-button"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Отправка...' : 'Создать'}
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}
-  
+            <button 
+              type="button"
+              onClick={onClose} 
+              className="cancel-button"
+              disabled={isSubmitting}
+            >
+              Отмена
+            </button>
+            <button 
+              type="submit"
+              className="submit-button"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Отправка...' : 'Создать'}
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  }
 
   function Notification({ show, message, type }) {
     if (!show) return null;
@@ -810,9 +809,9 @@ export default function App() {
       <div className="main-content">
         {adminMode && (
           <AssigneeManagement
-          assignees={assignees}
-          onAdd={addAssignee}
-          onRemove={removeAssignee}
+            assignees={assignees}
+            onAdd={addAssignee}
+            onRemove={removeAssignee}
           />
         )}
 
@@ -846,6 +845,13 @@ export default function App() {
           onAssigneeChange={async (taskId, assignee) => {
             await updateTask(taskId, { assignee: assignee || null });
           }}
+          onTimeSpentChange={async (taskId, timeSpent) => {
+            await updateTask(taskId, { 
+              timeSpent,
+              status: "выполнено",
+              completedAt: new Date().toISOString() 
+            });
+          }}
         />
 
         <button 
@@ -860,13 +866,7 @@ export default function App() {
         <TaskModal
           show={showTaskModal}
           onClose={() => setShowTaskModal(false)}
-          onSubmit={async (formData) => {
-            try {
-              await addTaskFromModal(formData);
-            } catch (error) {
-              // Ошибка уже обработана в addTaskFromModal
-            }
-          }}
+          onSubmit={addTaskFromModal}
           assignees={assignees}
         />
       )}
