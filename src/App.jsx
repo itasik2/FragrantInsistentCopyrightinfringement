@@ -2,9 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import "./App.css";
 
 // AWS API Gateway endpoint - ЗАМЕНИТЕ на ваш реальный URL
-const API_BASE = process.env.NODE_ENV === 'production' 
-  ? "https://2gnue2b9ye.execute-api.eu-west-1.amazonaws.com/prod"
-  : "/prod";
+const API_BASE = "https://2gnue2b9ye.execute-api.eu-west-1.amazonaws.com/prod";
 const ADMIN_PASSWORD = "admin123";
 
 // Функция для API запросов к AWS с CORS обработкой
