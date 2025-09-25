@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import "./App.css";
 
 // AWS API Gateway endpoint - ЗАМЕНИТЕ на ваш реальный URL
-const API_BASE = "https://your-api-id.execute-api.us-east-1.amazonaws.com/prod";
+const API_BASE = "https://2gnue2b9ye.execute-api.eu-west-1.amazonaws.com/prod";
 const ADMIN_PASSWORD = "admin123";
 
 // Выносим компоненты в начало файла чтобы избежать ошибок порядка инициализации
