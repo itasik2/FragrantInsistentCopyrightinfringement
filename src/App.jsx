@@ -5,31 +5,6 @@ import "./App.css";
 const API_BASE = "https://2gnue2b9ye.execute-api.eu-west-1.amazonaws.com/prod";
 const ADMIN_PASSWORD = "admin123";
 
-// Обновленная функция API запросов с CORS поддержкой
-const apiRequest = useCallback(async (url, options = {}) => {
-  try {
-    const response = await fetch(`${API_BASE}${url}`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-      mode: 'cors', // Явно указываем режим CORS
-      credentials: 'omit', // или 'include' если нужны куки
-      ...options,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-    }
-    return await response.json();
-  } catch (error) {
-    console.error("API error:", error);
-    showNotification("Ошибка соединения с сервером. Проверьте CORS настройки.", "error");
-    throw error;
-  }
-}, [showNotification]);
-
 // Выносим компоненты в начало файла чтобы избежать ошибок порядка инициализации
 function LoginForm({ onLogin, onAdminLogin }) {
   const [formData, setFormData] = useState({ firstName: "", lastName: "", password: "" });
@@ -448,6 +423,12 @@ export default function App() {
     new: tasks.filter(t => t.status === "новая").length
   }), [tasks]);
 
+  // Уведомления
+  const showNotification = useCallback((message, type = "success") => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => setNotification(prev => ({ ...prev, show: false })), 3000);
+  }, []);
+
   // Функция для API запросов к AWS
   const apiRequest = useCallback(async (url, options = {}) => {
     try {
@@ -469,13 +450,7 @@ export default function App() {
       showNotification(error.message || "Ошибка соединения с сервером", "error");
       throw error;
     }
-  }, []);
-
-  // Уведомления
-  const showNotification = useCallback((message, type = "success") => {
-    setNotification({ show: true, message, type });
-    setTimeout(() => setNotification(prev => ({ ...prev, show: false })), 3000);
-  }, []);
+  }, [showNotification]);
 
   // Загрузка данных с AWS
   const loadData = useCallback(async () => {
@@ -705,30 +680,17 @@ export default function App() {
   }
 
   // Рендер интерфейса
-// В рендере основного компонента, замените:
-if (!isAuthenticated) {
-  return (
-    <div className="app">
-      <LoginForm 
-        onLogin={handleLogin} 
-        onAdminLogin={() => handleLogin({ firstName: "Admin", lastName: "" }, true)} 
-        showNotification={showNotification} // УБЕРИТЕ эту строку
-      />
-    </div>
-  );
-}
+  if (!isAuthenticated) {
+    return (
+      <div className="app">
+        <LoginForm 
+          onLogin={handleLogin} 
+          onAdminLogin={() => handleLogin({ firstName: "Admin", lastName: "" }, true)} 
+        />
+      </div>
+    );
+  }
 
-// На:
-if (!isAuthenticated) {
-  return (
-    <div className="app">
-      <LoginForm 
-        onLogin={handleLogin} 
-        onAdminLogin={() => handleLogin({ firstName: "Admin", lastName: "" }, true)} 
-      />
-    </div>
-  );
-}
   return (
     <div className="app">
       <ConnectionStatus />
