@@ -2,8 +2,45 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import "./App.css";
 
 // AWS API Gateway endpoint - ЗАМЕНИТЕ на ваш реальный URL
-const API_BASE = "/prod";
+const API_BASE = process.env.NODE_ENV === 'production' 
+  ? "https://2gnue2b9ye.execute-api.eu-west-1.amazonaws.com/prod"
+  : "/prod";
 const ADMIN_PASSWORD = "admin123";
+
+// Функция для API запросов к AWS с CORS обработкой
+const apiRequest = useCallback(async (url, options = {}) => {
+  try {
+    // Добавляем CORS headers ко всем запросам
+    const corsOptions = {
+      mode: 'cors',
+      credentials: 'omit',
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+      ...options,
+    };
+
+    const response = await fetch(`${API_BASE}${url}`, corsOptions);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("API error:", error);
+    
+    // Более информативное сообщение об ошибке
+    let errorMessage = "Ошибка соединения с сервером";
+    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+      errorMessage = "CORS ошибка: сервер не разрешает запросы с этого домена. Проверьте настройки CORS на AWS API Gateway.";
+    }
+    
+    showNotification(errorMessage, "error");
+    throw error;
+  }
+}, [showNotification]);
 
 // Выносим компоненты в начало файла чтобы избежать ошибок порядка инициализации
 function LoginForm({ onLogin, onAdminLogin }) {
