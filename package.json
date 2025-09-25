@@ -10,6 +10,15 @@
     "build": "vite build",
     "preview": "vite preview"
   },
+  
+  "name": "task-management-system",
+  "proxy": {
+    "/prod": {
+      "target": "https://2gnue2b9ye.execute-api.eu-west-1.amazonaws.com",
+      "changeOrigin": true,
+      "secure": true
+    }
+   },
   "keywords": [],
   "author": "",
   "license": "ISC",
