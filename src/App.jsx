@@ -6,44 +6,49 @@ const API_BASE = "https://2gnue2b9ye.execute-api.eu-west-1.amazonaws.com/prod";
 const ADMIN_PASSWORD = "admin123";
 
 // Обновленная функция API запросов с CORS поддержкой
-// const apiRequest = useCallback(async (url, options = {}) => {
-//   try {
-//     const response = await fetch(`${API_BASE}${url}`, {
-//       headers: {
-//         "Content-Type": "application/json",
-//         ...options.headers,
-//       },
-//       mode: 'cors', // Явно указываем режим CORS
-//       credentials: 'omit', // или 'include' если нужны куки
-//       ...options,
-//     });
+const apiRequest = useCallback(async (url, options = {}) => {
+  try {
+    const response = await fetch(`${API_BASE}${url}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+      mode: 'cors', // Явно указываем режим CORS
+      credentials: 'omit', // или 'include' если нужны куки
+      ...options,
+    });
 
-//     if (!response.ok) {
-//       const errorText = await response.text();
-//       throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-//     }
-//     return await response.json();
-//   } catch (error) {
-//     console.error("API error:", error);
-//     showNotification("Ошибка соединения с сервером. Проверьте CORS настройки.", "error");
-//     throw error;
-//   }
-// }, [showNotification]);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("API error:", error);
+    showNotification("Ошибка соединения с сервером. Проверьте CORS настройки.", "error");
+    throw error;
+  }
+}, [showNotification]);
 
 // Выносим компоненты в начало файла чтобы избежать ошибок порядка инициализации
-function LoginForm({ onLogin, onAdminLogin, showNotification }) {
+function LoginForm({ onLogin, onAdminLogin }) {
   const [formData, setFormData] = useState({ firstName: "", lastName: "", password: "" });
   const [isAdminLogin, setIsAdminLogin] = useState(false);
+  const [localError, setLocalError] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setLocalError(""); // Сбрасываем ошибку
+    
     if (!formData.firstName.trim()) {
-      return showNotification("Введите имя", "error");
+      setLocalError("Введите имя");
+      return;
     }
     
     if (isAdminLogin) {
       if (formData.password !== ADMIN_PASSWORD) {
-        return showNotification("Неверный пароль администратора", "error");
+        setLocalError("Неверный пароль администратора");
+        return;
       }
       onAdminLogin(formData);
     } else {
@@ -55,6 +60,11 @@ function LoginForm({ onLogin, onAdminLogin, showNotification }) {
     <div className="login-container">
       <div className="login-form">
         <h1>🔐 Авторизация</h1>
+        {localError && (
+          <div className="error-message" style={{color: 'red', marginBottom: '10px'}}>
+            {localError}
+          </div>
+        )}
         <form onSubmit={handleSubmit}>
           {!isAdminLogin ? (
             <>
@@ -98,7 +108,10 @@ function LoginForm({ onLogin, onAdminLogin, showNotification }) {
               <button type="submit" className="login-button">Войти как админ</button>
               <button 
                 type="button"
-                onClick={() => setIsAdminLogin(false)} 
+                onClick={() => {
+                  setIsAdminLogin(false);
+                  setLocalError("");
+                }} 
                 className="cancel-button"
               >
                 Отмена
@@ -692,18 +705,30 @@ export default function App() {
   }
 
   // Рендер интерфейса
-  if (!isAuthenticated) {
-    return (
-      <div className="app">
-        <LoginForm 
-          onLogin={handleLogin} 
-          onAdminLogin={() => handleLogin({ firstName: "Admin", lastName: "" }, true)} 
-          showNotification={showNotification}
-        />
-      </div>
-    );
-  }
+// В рендере основного компонента, замените:
+if (!isAuthenticated) {
+  return (
+    <div className="app">
+      <LoginForm 
+        onLogin={handleLogin} 
+        onAdminLogin={() => handleLogin({ firstName: "Admin", lastName: "" }, true)} 
+        showNotification={showNotification} // УБЕРИТЕ эту строку
+      />
+    </div>
+  );
+}
 
+// На:
+if (!isAuthenticated) {
+  return (
+    <div className="app">
+      <LoginForm 
+        onLogin={handleLogin} 
+        onAdminLogin={() => handleLogin({ firstName: "Admin", lastName: "" }, true)} 
+      />
+    </div>
+  );
+}
   return (
     <div className="app">
       <ConnectionStatus />
